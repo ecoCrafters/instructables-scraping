@@ -7,4 +7,4 @@ with Instructables() as it:
     instructions_links = it.get_instructions_links()
     # print(instructions_list)
     for link in instructions_links[1:2]:
-        it.get_instruction(link)
+        it.get_instructions_data(link)

@@ -1,12 +1,15 @@
 import os
 import time
+import uuid
 
 from selenium import webdriver
-from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
+from html_sanitizer import Sanitizer
+
+from instructables import config
 from instructables import constants as C
-from instructables.utils import write_to_file, get_materials
+from instructables.utils import get_materials
 
 
 class Instructables(webdriver.Firefox):
@@ -15,8 +18,9 @@ class Instructables(webdriver.Firefox):
         self.teardown = teardown
         os.environ['PATH'] += self.webdriver_path
         super(Instructables, self).__init__()
-        self.implicitly_wait(15)
+        self.implicitly_wait(5)
         self.maximize_window()
+        self.sanitizer = Sanitizer(config.SANITIZER_CONFIG)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.teardown:
@@ -62,11 +66,14 @@ class Instructables(webdriver.Firefox):
         instructions = [anchor.get_attribute('href') for anchor in anchor_titles]
         return instructions
 
-    def get_instruction(self, url):
-        self.get(url)
-        # id = url.split('/')[-1]
-        title = self.find_element(By.CSS_SELECTOR, 'h1[class="header-title"]').text
-        # write_to_file(id, title=title)
+    def get_instruction(self):
+        """
+        Get the content body
+        :return: tuple, a tuple containing thumbnail image src and the simplified html content body
+        """
+        content = ''
+        thumbnail_src = ''
+
         article_body = self.find_element(By.CSS_SELECTOR, 'div[class="article-body"]')
 
         # article_body consist of several sections.
@@ -74,32 +81,57 @@ class Instructables(webdriver.Firefox):
         # each section has title, images, and body, so loop on that
         sections = article_body.find_elements(By.TAG_NAME, 'section')
         for section in sections:
-            write_section_title = True
-            images_dict = {}
-            mediaset_class_name = 'mediaset'
-
             # section_title
-            section_title = section.find_element(By.TAG_NAME, 'h2').text
+            section_title = section.find_element(By.TAG_NAME, 'h2').get_attribute('outerHTML')
+            # title on the intro section is not needed
+            if section.get_attribute('id') == 'intro':
+                section_title = ''
+                # however we need the first image in intro section for thumbnail
+                thumbnail_src = section.find_element(By.CLASS_NAME, 'mediaset') \
+                    .find_element(By.TAG_NAME, 'img') \
+                    .get_attribute('data-src')
+            content += section_title
 
             # section images
             if section.get_attribute('id') == 'stepsupplies':
-                mediaset_class_name = 'mediaset-supplies'
-            photoset_wrapper = section.find_element(By.CLASS_NAME, mediaset_class_name)\
-                                      .find_elements(By.TAG_NAME, 'img')
-            for src in photoset_wrapper:
-                images_dict[src.get_attribute('src')] = src.get_attribute('alt')
+                photoset_wrapper = section.find_element(By.CLASS_NAME, 'mediaset-supplies')
+            else:
+                photoset_wrapper = section.find_element(By.CLASS_NAME, 'mediaset')
+            for img in photoset_wrapper.find_elements(By.TAG_NAME, 'img'):
+                src = img.get_attribute('data-src')
+                if src:
+                    alt = img.get_attribute('alt')
+                    img_html = f'<img src="{src}" alt="{alt}" />'
+                    content += img_html
 
             # section body
-            # keep raw html to get markdownified later to preserve the formatting
             section_body = section.find_element(By.CLASS_NAME, 'step-body').get_attribute('outerHTML')
+            content += section_body
 
-            # title on the intro section is not needed
-            if section.get_attribute('id') == 'intro':
-                write_section_title = False
+        return thumbnail_src, content
 
-            # write each section to file
-            write_to_file(id, section_title, section_body, images_dict, write_section_title, title=None)
+    def get_instructions_data(self, url):
+        """
+        Get all instruction (tutorial) data
+        :param url: String, the url of the tutorial
+        :return: dict, a dictionary containing tutorial data
+        """
+        self.get(url)
 
-        materials = get_materials(id)
-        print(materials)
-        # TODO: extract to database
+        id = uuid.uuid4()
+        title = self.find_element(By.CSS_SELECTOR, 'h1[class="header-title"]').text
+        thumbnail_src, content = self.get_instruction()
+        materials = get_materials(content)
+
+        return {
+            'post_id': str(id),
+            'title': title,
+            'slug': title.lower().replace(' ', '-'),
+            'content': self.sanitizer.sanitize(content),
+            'thumbnail': thumbnail_src,
+            'num_of_likes': 0,
+            'created_at': time.strftime(C.TIME_FORMAT, time.gmtime()),
+            'deleted_at': None,
+            'user_id': 'admin',
+            'materials': materials
+        }

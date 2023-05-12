@@ -12,3 +12,5 @@ LOCAL_AI_ENDPOINT = 'http://localhost:8000/v1/chat/completions'
 MODEL_PATH = r'D:\Projects\alpaca-native-7B-ggml\sdkl'
 HEADERS = {'Content-Type': 'application/json'}
 PROMPT = "What are the materials from this tutorial?"
+
+TIME_FORMAT = '%d-%m-%Y %H:%M:%S'
