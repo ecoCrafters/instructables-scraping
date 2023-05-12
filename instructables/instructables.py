@@ -28,7 +28,7 @@ class Instructables(webdriver.Firefox):
     def load_all(self):
         """
         Find main tag and find button tag. Click on that to load all.
-        :return:
+        :return: None
         """
         main_element = self.find_element(By.TAG_NAME, 'main')
         button_element = main_element.find_element(By.TAG_NAME, 'button')
@@ -37,7 +37,7 @@ class Instructables(webdriver.Firefox):
     def scroll_down(self):
         """
         Simulate scroll down in infinite scrolling page.
-        :return:
+        :return: None
         """
         SCROLL_PAUSE_TIME = 1
         screen_height = self.execute_script('return window.screen.height;')
