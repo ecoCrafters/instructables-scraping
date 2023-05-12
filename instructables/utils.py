@@ -1,11 +1,15 @@
 from instructables.constants import INSTRUCTIONS_DATA_PATH
 
-import os
-
 from markdownify import markdownify as md
+from html_sanitizer import Sanitizer
 import pyperclip
+
 import tempfile
+import os
 import subprocess
+import re
+
+CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
 
 
 def write_to_file(id: str, section_title: str = None, body: str = None, images: dict = None,
@@ -48,30 +52,51 @@ def parse_markdown_table(table: str):
     result = []
 
     for row in table.split('\n')[2:]:
-        values = row.split('|')[1].strip()
+        values = [f'{cell[2].strip()} {cell[1].strip()}' for cell in row.split('|')]
         result.append(values)
 
     return result
 
 
-def get_materials(id: str):
+def parse_list(response: str):
+    """
+    Parse pasted response from chatGPT in list form
+    :param response: string, pasted response from chatGPT
+    :return: list: a list of materials
+    """
+    response_list = response.split('\n')
+    material_list = [material[2:].split('(')[0].strip() for material in response_list if material.startswith('-')]
+    return material_list
+
+
+def cleanhtml(raw_html):
+    """
+    Remove all html tag
+    :param raw_html: String, a html in string
+    :return: String, a cleaned html in string.
+    """
+    cleantext = re.sub(CLEANR, '', raw_html)
+    return cleantext
+
+
+def get_materials(html_content: str, prompt=None):
     """
     Get materials from the file. A human interaction will be needed to copy and paste data from chatGPT
     1. Read the file based on id
     2. Copy the content to clipboard. A human will need to paste that to chatGPT and copy response
     3. Create a temporary file, open it with notepad. Paste the response there, save and close
     4. As soon as it closed, read the file, parse it.
-    :param id: String, document id
-    :return: dict:, a dictionary of materials
+    :param html_content: String, a raw html content in string
+    :return: List:, a list of materials
     """
-    prompt = 'Write a table summarizing materials used and its quantities in this tutorial'
-    # read the file based on id
-    with open(f'{os.path.join(INSTRUCTIONS_DATA_PATH, id)}.md', 'r') as f:
-        content = f.read()
-        # copy the content to clipboard + the prompt
-        pyperclip.copy(f'{prompt}\n\n{content}')
+    if not prompt:
+        prompt = "extract the materials name used from this html pages"
+    sanitizer = Sanitizer()
+    content = sanitizer.sanitize(html_content)
+    # copy the content to clipboard + the prompt
+    pyperclip.copy(f'{prompt}\n\n{content}')
 
-    # open a temporary file
+    # create a temporary file
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
         temp_file.write('')
 
@@ -81,12 +106,9 @@ def get_materials(id: str):
 
     # read the contents of the file
     with open(temp_file.name, 'r') as f:
-        md_table = f.read()
+        response = f.read()
 
-    # parse the table
-    data = parse_markdown_table(md_table)
+    # parse the table/list
+    data = parse_list(response)
 
-    return {
-        'id': id,
-        'data': data
-    }
+    return data
