@@ -178,6 +178,7 @@ def add_material_data(materials: list, material_df: pd.DataFrame, instruction_ma
     material_dict = {'id': [], 'ingredient': [], 'created_at': []}
     instruction_material_dict = {'id': [], 'post_id': [], 'ingredient_id': []}
     for material in materials:
+        material = material.lower()
         if material not in material_df['ingredient']:
             material_id = "M" + str(random.randint(1, 99999)).zfill(5)
             material_dict['id'].append(material_id)
