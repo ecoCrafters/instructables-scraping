@@ -4,12 +4,14 @@ import random
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 from html_sanitizer import Sanitizer
 
 from instructables import config
 from instructables import constants as C
 from instructables.utils import get_materials
+
 
 random.seed(42)
 
@@ -90,22 +92,30 @@ class Instructables(webdriver.Firefox):
             if section.get_attribute('id') == 'intro':
                 section_title = ''
                 # however, we need the first image in the intro section for thumbnail
-                thumbnail_src = section.find_element(By.CLASS_NAME, 'mediaset') \
-                    .find_element(By.TAG_NAME, 'img') \
-                    .get_attribute('data-src')
+                # some intro section has wrapper but doesn't contain images
+                try:
+                    thumbnail_src = section.find_element(By.CLASS_NAME, 'mediaset') \
+                        .find_element(By.TAG_NAME, 'img') \
+                        .get_attribute('data-src')
+                except NoSuchElementException:
+                    thumbnail_src = ''
             content += section_title
 
             # section images
-            if section.get_attribute('id') == 'stepsupplies':
-                photoset_wrapper = section.find_element(By.CLASS_NAME, 'mediaset-supplies')
-            else:
-                photoset_wrapper = section.find_element(By.CLASS_NAME, 'mediaset')
-            for img in photoset_wrapper.find_elements(By.TAG_NAME, 'img'):
-                src = img.get_attribute('data-src')
-                if src:
-                    alt = img.get_attribute('alt')
-                    img_html = f'<img src="{src}" alt="{alt}" />'
-                    content += img_html
+            # some section doesnt contain images at all
+            try:
+                if section.get_attribute('id') == 'stepsupplies':
+                    photoset_wrapper = section.find_element(By.CLASS_NAME, 'mediaset-supplies')
+                else:
+                    photoset_wrapper = section.find_element(By.CLASS_NAME, 'mediaset')
+                for img in photoset_wrapper.find_elements(By.TAG_NAME, 'img'):
+                    src = img.get_attribute('data-src')
+                    if src:
+                        alt = img.get_attribute('alt')
+                        img_html = f'<img src="{src}" alt="{alt}" />'
+                        content += img_html
+            except NoSuchElementException:
+                pass
 
             # section body
             section_body = section.find_element(By.CLASS_NAME, 'step-body').get_attribute('outerHTML')
@@ -134,7 +144,7 @@ class Instructables(webdriver.Firefox):
             'thumbnail': thumbnail_src,
             'num_of_likes': 0,
             'created_at': time.strftime(C.TIME_FORMAT, time.gmtime()),
-            'deleted_at': None,
+            'deleted_at': '',
             'user_id': 'admin',
             'materials': materials
         }
