@@ -40,10 +40,11 @@ with Instructables() as it:
             materials = data.pop('materials')
             # open file once and write to it in a loop is more efficient than using pandas dataframe
             instruction_writer.writerow(data)
-            # although pandas implementation adding new data is not that efficient, it is more efficient to read and write
-            # data to memory (e.g., using pandas dataframe) than to open and write to file
+            # although pandas implementation adding new data is not that efficient, it is more efficient to read and
+            # write data to memory (e.g., using pandas dataframe) than to open and write to file
             material_df, instruction_material_df = add_material_data(materials, material_df, instruction_material_df,
-                                                                     created_at=data['created_at'], post_id=data['post_id'])
+                                                                     created_at=data['created_at'],
+                                                                     post_id=data['post_id'])
         except:
             break
 
