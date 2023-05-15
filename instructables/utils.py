@@ -3,8 +3,6 @@ import random
 
 import pandas as pd
 
-from instructables import constants as C
-
 from instructables.constants import INSTRUCTIONS_DATA_PATH
 
 from markdownify import markdownify as md
@@ -123,17 +121,46 @@ def get_materials(html_content: str, prompt=None):
     return data
 
 
-def open_csv(path, fieldnames, delimiter=',') -> csv.DictWriter:
+def open_csv(path, fieldnames, mode='w', delimiter=',') -> csv.DictWriter:
     """
     Open a CSV file
     :param path: string, the path to the CSV file
     :param fieldnames: list, the list of fieldnames
+    :param mode: string, the mode to use
     :param delimiter: string, the delimiter to use
     :return: csv.DictWriter
     """
-    csv_file = open(path, mode='w', newline='', encoding='utf-8')
+    csv_file = open(path, mode=mode, newline='', encoding='utf-8')
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=delimiter)
     return writer
+
+
+def read_url_csv(path: str) -> list[str]:
+    """
+    Read a CSV file and return the url list.
+    Will create the file if not exist.
+    :param path: string, the path to the CSV file
+    :return: tuple, a tuple containing csv.DictReader and csv.DictReader
+    """
+    if not os.path.exists(path):
+        writer = open_csv(path, fieldnames=['post_id', 'url'])
+        writer.writeheader()
+        return []
+    with open(path, mode='r', newline='', encoding='utf-8') as csv_file:
+        reader = csv.DictReader(csv_file)
+        return [row['url'] for row in reader]
+
+
+def read_csv_to_dataframe(path: str, columns: list) -> pd.DataFrame:
+    """
+    Read a csv file to dataframe, if the file not exist return new dataframe
+    :param path: String, path to file
+    :param columns: List, list of column names
+    :return: pd.DataFrame
+    """
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=columns)
+    return pd.read_csv(path)
 
 
 def add_material_data(materials: list, material_df: pd.DataFrame, instruction_material_df: pd.DataFrame, post_id: str,

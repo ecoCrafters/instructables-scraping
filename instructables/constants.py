@@ -6,6 +6,7 @@ ROOT = Path(__file__).parent.parent
 INSTRUCTIONS_DATA_PATH = os.path.join(ROOT, 'data', 'posts.tsv')
 MATERIAL_DATA_PATH = os.path.join(ROOT, 'data', 'ingredients.csv')
 INSTRUCTION_MATERIAL_DATA_PATH = os.path.join(ROOT, 'data', 'posts_ingredients.csv')
+URL_DATA_PATH = os.path.join(ROOT, 'data', 'post_urls.csv')
 INSTRUCTIONS_DIR_PATH = os.path.join(ROOT, 'data', 'instructions')
 
 BASE_URL = 'https://www.instructables.com/search/?q=waste&projects=all'
