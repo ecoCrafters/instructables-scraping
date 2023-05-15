@@ -1,3 +1,10 @@
+import csv
+import random
+
+import pandas as pd
+
+from instructables import constants as C
+
 from instructables.constants import INSTRUCTIONS_DATA_PATH
 
 from markdownify import markdownify as md
@@ -10,6 +17,7 @@ import subprocess
 import re
 
 CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
+random.seed(42)
 
 
 def write_to_file(id: str, section_title: str = None, body: str = None, images: dict = None,
@@ -69,7 +77,7 @@ def parse_list(response: str):
     return material_list
 
 
-def cleanhtml(raw_html):
+def cleanhtml(raw_html: str):
     """
     Remove all html tag
     :param raw_html: String, a html in string
@@ -86,6 +94,7 @@ def get_materials(html_content: str, prompt=None):
     2. Copy the content to clipboard. A human will need to paste that to chatGPT and copy response
     3. Create a temporary file, open it with notepad. Paste the response there, save and close
     4. As soon as it closed, read the file, parse it.
+    :param prompt: String, text to prompt the chatGPT
     :param html_content: String, a raw html content in string
     :return: List:, a list of materials
     """
@@ -112,3 +121,51 @@ def get_materials(html_content: str, prompt=None):
     data = parse_list(response)
 
     return data
+
+
+def open_csv(path, fieldnames, delimiter=',') -> csv.DictWriter:
+    """
+    Open a CSV file
+    :param path: string, the path to the CSV file
+    :param fieldnames: list, the list of fieldnames
+    :param delimiter: string, the delimiter to use
+    :return: csv.DictWriter
+    """
+    csv_file = open(path, mode='w', newline='', encoding='utf-8')
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=delimiter)
+    return writer
+
+
+def add_material_data(materials: list, material_df: pd.DataFrame, instruction_material_df: pd.DataFrame, post_id: str,
+                      created_at: str):
+    """
+    Store the material data to the csv file.
+    Each record will contain id, material name, and date_created
+    :param materials: list, a list of materials that are going to be stored
+    :param material_df: pd.DataFrame, a dataframe of materials
+    :param instruction_material_df: pd.DataFrame, a dataframe of instruction_material
+    :param post_id: string, the post id
+    :param created_at: string, the date created
+    :return: None
+    """
+    material_dict = {'id': [], 'ingredient': [], 'created_at': []}
+    instruction_material_dict = {'id': [], 'post_id': [], 'ingredient_id': []}
+    for material in materials:
+        if material not in material_df['ingredient']:
+            material_id = "M" + str(random.randint(1, 99999)).zfill(5)
+            material_dict['id'].append(material_id)
+            material_dict['ingredient'].append(material)
+            material_dict['created_at'].append(created_at)
+        else:
+            idx = material_dict['ingredient'].index(material)
+            material_id = material_dict['id'][idx]
+
+        instruction_material_dict['id'].append("PM" + str(random.randint(1, 99999)).zfill(5))
+        instruction_material_dict['post_id'].append(post_id)
+        instruction_material_dict['ingredient_id'].append(material_id)
+
+    # add to dataframe
+    material_df = pd.concat([material_df, pd.DataFrame(material_dict)])
+    instruction_material_df = pd.concat([instruction_material_df, pd.DataFrame(instruction_material_dict)])
+
+    return material_df, instruction_material_df

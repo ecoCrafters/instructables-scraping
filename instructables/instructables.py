@@ -1,6 +1,6 @@
 import os
 import time
-import uuid
+import random
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -10,6 +10,8 @@ from html_sanitizer import Sanitizer
 from instructables import config
 from instructables import constants as C
 from instructables.utils import get_materials
+
+random.seed(42)
 
 
 class Instructables(webdriver.Firefox):
@@ -31,7 +33,8 @@ class Instructables(webdriver.Firefox):
 
     def load_all(self):
         """
-        Find main tag and find button tag. Click on that to load all.
+        Find the main tag and find button tag.
+        Click on that to load all.
         :return: None
         """
         main_element = self.find_element(By.TAG_NAME, 'main')
@@ -43,14 +46,14 @@ class Instructables(webdriver.Firefox):
         Simulate scroll down in infinite scrolling page.
         :return: None
         """
-        SCROLL_PAUSE_TIME = 1
+        scroll_pause_time = 1
         screen_height = self.execute_script('return window.screen.height;')
         i = 1
         while True:
             # scroll one screen height each time
             self.execute_script(f'window.scrollTo(0, {screen_height * i});')
             i += 1
-            time.sleep(SCROLL_PAUSE_TIME)
+            time.sleep(scroll_pause_time)
             # update scroll height each time after scrolled, as the scroll height can change after we scrolled the page
             scroll_height = self.execute_script('return document.body.scrollHeight;')
             # break the loop when the height we need to scroll to is larger than the total scroll height
@@ -77,7 +80,7 @@ class Instructables(webdriver.Firefox):
         article_body = self.find_element(By.CSS_SELECTOR, 'div[class="article-body"]')
 
         # article_body consist of several sections.
-        # Common section is intro, supplies, step1, step2, and so on
+        # the common section is intro, supplies, step1, step2, and so on
         # each section has title, images, and body, so loop on that
         sections = article_body.find_elements(By.TAG_NAME, 'section')
         for section in sections:
@@ -86,7 +89,7 @@ class Instructables(webdriver.Firefox):
             # title on the intro section is not needed
             if section.get_attribute('id') == 'intro':
                 section_title = ''
-                # however we need the first image in intro section for thumbnail
+                # however, we need the first image in the intro section for thumbnail
                 thumbnail_src = section.find_element(By.CLASS_NAME, 'mediaset') \
                     .find_element(By.TAG_NAME, 'img') \
                     .get_attribute('data-src')
@@ -112,19 +115,19 @@ class Instructables(webdriver.Firefox):
 
     def get_instructions_data(self, url):
         """
-        Get all instruction (tutorial) data
+        Get all instructions (tutorial) data
         :param url: String, the url of the tutorial
         :return: dict, a dictionary containing tutorial data
         """
         self.get(url)
 
-        id = uuid.uuid4()
+        post_id = "P" + str(random.randint(0, 99999)).zfill(5)
         title = self.find_element(By.CSS_SELECTOR, 'h1[class="header-title"]').text
         thumbnail_src, content = self.get_instruction()
         materials = get_materials(content)
 
         return {
-            'post_id': str(id),
+            'post_id': post_id,
             'title': title,
             'slug': title.lower().replace(' ', '-'),
             'content': self.sanitizer.sanitize(content),
