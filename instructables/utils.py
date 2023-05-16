@@ -81,7 +81,7 @@ def cleanhtml(raw_html: str):
     :param raw_html: String, a html in string
     :return: String, a cleaned html in string.
     """
-    cleantext = re.sub(CLEANR, '', raw_html)
+    cleantext = re.sub(CLEANR, ' ', raw_html)
     return cleantext
 
 
@@ -97,9 +97,8 @@ def get_materials(html_content: str, prompt=None):
     :return: List:, a list of materials
     """
     if not prompt:
-        prompt = "extract the materials name used from this html pages"
-    sanitizer = Sanitizer()
-    content = sanitizer.sanitize(html_content)
+        prompt = "extract only the materials name used as nouns from this tutorial"
+    content = cleanhtml(html_content).strip()
     # copy the content to clipboard + the prompt
     pyperclip.copy(f'{prompt}\n\n{content}')
 
