@@ -178,14 +178,13 @@ def add_material_data(materials: list, material_df: pd.DataFrame, instruction_ma
     instruction_material_dict = {'id': [], 'post_id': [], 'ingredient_id': []}
     for material in materials:
         material = material.lower()
-        if material not in material_df['ingredient']:
+        if material not in material_df['ingredient'].values:
             material_id = "M" + str(random.randint(1, 99999)).zfill(5)
             material_dict['id'].append(material_id)
             material_dict['ingredient'].append(material)
             material_dict['created_at'].append(created_at)
         else:
-            idx = material_dict['ingredient'].index(material)
-            material_id = material_dict['id'][idx]
+            material_id = material_df[material_df['ingredient'] == material]['id'].values[0]
 
         instruction_material_dict['id'].append("PM" + str(random.randint(1, 99999)).zfill(5))
         instruction_material_dict['post_id'].append(post_id)
