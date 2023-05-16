@@ -28,7 +28,7 @@ with Instructables() as it:
     it.load_all()
     # it.scroll_down()
     instructions_links = it.get_instructions_links()
-    for link in instructions_links:
+    for link in instructions_links[10:12]:
         # check whether the url has been scraped before
         if link in url_list:
             continue
