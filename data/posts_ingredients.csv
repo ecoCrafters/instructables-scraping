@@ -1,4 +1,4 @@
-id,post_id,ingredient_id
+post_ingredients_id,post_id,ingredient_id
 PM03279,P83810,M14593
 PM36049,P83810,M97197
 PM29257,P83810,M32099
