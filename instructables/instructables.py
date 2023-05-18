@@ -10,7 +10,7 @@ from html_sanitizer import Sanitizer
 
 from instructables import config
 from instructables import constants as C
-from instructables.utils import get_materials
+from instructables.utils import get_materials, create_refined_slug
 
 
 random.seed(42)
@@ -133,13 +133,14 @@ class Instructables(webdriver.Firefox):
 
         post_id = "P" + str(random.randint(0, 99999)).zfill(5)
         title = self.find_element(By.CSS_SELECTOR, 'h1[class="header-title"]').text
+        slug = create_refined_slug(title)
         thumbnail_src, content = self.get_instruction()
         materials = get_materials(content)
 
         return {
             'post_id': post_id,
             'title': title,
-            'slug': title.lower().replace(' ', '-'),
+            'slug': slug,
             'content': self.sanitizer.sanitize(content),
             'thumbnail': thumbnail_src,
             'num_of_likes': 0,

@@ -1,18 +1,17 @@
 import csv
 import random
-
-import pandas as pd
-
-from instructables.constants import INSTRUCTIONS_DATA_PATH
-
-from markdownify import markdownify as md
-from html_sanitizer import Sanitizer
-import pyperclip
-
 import tempfile
 import os
 import subprocess
 import re
+import string
+
+from instructables.constants import INSTRUCTIONS_DATA_PATH
+
+from markdownify import markdownify as md
+import pyperclip
+import pandas as pd
+
 
 CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
 random.seed(42)
@@ -195,3 +194,14 @@ def add_material_data(materials: list, material_df: pd.DataFrame, instruction_ma
     instruction_material_df = pd.concat([instruction_material_df, pd.DataFrame(instruction_material_dict)])
 
     return material_df, instruction_material_df
+
+def create_refined_slug(title: str) -> str:
+    """
+    Create slug out of the title.
+    Remove punctuation, remove extra whitespace, replace whitespace with dash
+    :param title: String, the title to be slugged
+    :return: String, slugged title
+    """
+    clean_title = title.translate(str.maketrans('', '', string.punctuation))
+    clean_title = re.sub(' +', ' ', clean_title)
+    return clean_title.lower().replace(' ', '-')
